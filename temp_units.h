@@ -92,7 +92,8 @@ static Unit metric_units[] = {
         .is_base_unit = 0,
         .quantity = &distance_quantity,
         .base_unit = &imperial_units[0],
-        .multiplier = 25.4,
+        .multiplier = 254,
+        .divider = 10,
         .offset = 0,
     },
     (Unit)
@@ -151,3 +152,5 @@ static UnitSystem unit_systems[] = {
         .unit_count = sizeof(metric_units) / sizeof(Unit)
     }
 };
+
+static int unit_system_count = 3;
