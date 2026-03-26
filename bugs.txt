@@ -1,0 +1,7 @@
+WORKING:
+- adding whole unitless numbers
+- subtracting whole unitless numbers
+
+NOT WORKING:
+- multiplying
+- putting in decimal numbers resulting in a negative number

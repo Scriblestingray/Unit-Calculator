@@ -263,23 +263,41 @@ Result MatchQuantities(Number num, DerivedUnit units) {
     return matched;
 }
 
+#include "parse.h"
+
 Result AddUnitless(Number num1, Number num2) {
+    int signs_unequal = num1.sign != num2.sign;
+
+    // combine the two bases
     int base_flip_sign = num1.base < num2.base;
-    unsigned long long base = base_flip_sign ? num2.base - num1.base : num1.base - num2.base;
+    unsigned long long base = 
+        signs_unequal ? 
+            (base_flip_sign ? num2.base - num1.base : num1.base - num2.base) 
+        : num1.base + num2.base;
 
+    // give the two fractions a common denominator
     unsigned long long denominator = LCM(num1.denominator, num2.denominator);
-
     unsigned long long num1_num = num1.numerator * (denominator/num1.denominator);
     unsigned long long num2_num = num2.numerator * (denominator/num2.denominator);
+    
+    // combine the two fractions
     int frac_flip_sign = num1_num < num2_num;
-    unsigned long long numerator = frac_flip_sign ? num2_num - num1_num : num1_num - num2_num;
+    unsigned long long numerator = signs_unequal ? 
+        (frac_flip_sign ? num2_num - num1_num : num1_num - num2_num) :
+        num1_num + num2_num;
 
-    if (base_flip_sign != frac_flip_sign) {
-        base -= 1;
-        numerator = denominator - numerator;
+
+    int sign = signs_unequal && base_flip_sign ? !num1.sign : num1.sign;
+
+    // if we're doing subtraction
+    if (signs_unequal && (base_flip_sign || frac_flip_sign)) { 
+        if (base != 0) {
+            base -= 1;
+            numerator = denominator - numerator;
+        } else {
+            sign = !num1.sign;
+        }
     }
-
-    int sign = base_flip_sign || frac_flip_sign ? !num1.sign : num1.sign;
 
     Number num = (Number) {
         .sign = sign,
@@ -288,6 +306,7 @@ Result AddUnitless(Number num1, Number num2) {
         .denominator = denominator
     };
     num = Balance(num);
+
     return (Result) {.status = SUCCESS, .value = num};
 }
 
@@ -349,11 +368,11 @@ Result MultiplyUnitless(Number num1, Number num2) {
     p1 = Balance(p1);
     p2 = Balance(p2);
     p3 = Balance(p3);
-    Result inter1 = Add(p1, p2);
+    Result inter1 = AddUnitless(p1, p2);
     if (inter1.status != SUCCESS) {
         return inter1;
     }
-    Result result = Add(p2, p3);
+    Result result = AddUnitless(inter1.value, p3);
     if (result.status != SUCCESS) {
         return result;
     }
