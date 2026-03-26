@@ -1,8 +1,36 @@
-ft, in, 12, 0, imp, len
-m, ft, 3.28084, 0, si, len
-min, s, 60, 0, si, time
-hr, min, 60, 0, si, time
-day, hr, 24, 0, si, time
-wk, day, 7, 0, si, time
-yr, wk, 52, 0, si, time
-f, c, 9/5, 32, imp, temp
+-
+si
+m 1 m 1 0 len
+km 0 m 1000 0 len
+cm 0 m 0.01 0 len
+mm 0 cm 0.1 0 len
+um 0 mm 0.001 0 len
+K 1 K 1 0 temp
+C 0 K 1 273.15 temp
+F 0 C 0.555555555555556 -17.7777777777778 temp
+kg 1 kg 1 0 mass
+g 0 kg 0.001 0 mass
+mg 0 g 0.001 0 mass
+N 1 N 1 0 force
+kN 0 N 1000 0 force
+J 1 J 1 0 energy
+kJ 0 J 1000 0 energy
+MJ 0 kJ 1000 0 energy
+-
+time
+s 1 s 1 0 time
+ms 0 s 0.001 0 time
+min 0 s 60 0 time
+hr 0 min 60 0 time
+day 0 hr 24 0 time
+-
+imp
+in 0 m 0.0254 0 len
+ft 0 in 12 0 len
+yd 0 ft 3 0 len
+mi 0 yd 1760 0 len
+oz 0 kg 0.028349523125 0 mass
+lb 0 oz 16 0 mass
+lbf 0 N 4.4482216152605 0 force
+inlb 0 J 0.1129848290276167 0 energy
+ftlb 0 inlb 12 0 energy
