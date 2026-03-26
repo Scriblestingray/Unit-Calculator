@@ -2,12 +2,6 @@
 #include <stdio.h>
 #include <string.h>
 
-typedef struct Systems Systems;
-struct Systems
-{
-    UnitSystem *systems;
-    int count;
-};
 
 Systems CreateSystems() {
     Systems systems;
@@ -25,17 +19,27 @@ Systems CreateSystems() {
 
     int i = 0;
     int j = 0;
+
+    //get first line of the file
     fscanf(fileptr, "%s %d %s %d %d %d %s", buf, &dec, buf2, &dec2, &dec3, &dec4, buf3);
+
+    //if its not END, create a system
     while (strcmp(buf, "END") != 0) {
         //title of systen
         fscanf(fileptr, "%s", systems.systems[j].name);
         fscanf(fileptr, "%s %d %s %d %d %d %s", buf, &dec, buf2, &dec2, &dec3, &dec4, buf3);
+
+        //if - not next line, add the next unit
         while (strcmp(buf, "-") != 0) {
             systems.systems[j].units[i].abbreviation = buf;
             systems.systems[j].units[i].is_base_unit = dec;
+
+            //if base unit is true, just make itself the base unit
             if (systems.systems[j].units[i].is_base_unit == 1) {
                 systems.systems[j].units[i].base_unit = &systems.systems[j].units[i];
             }
+
+            //if its not, search through previous units for its base unit
             else {
                 for (int k = 0; k < sizeof(systems.systems[j].units); k++) {
                     if (strcmp(systems.systems[j].units[k].abbreviation, buf2) == 0) {
