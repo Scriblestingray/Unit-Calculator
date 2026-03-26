@@ -107,13 +107,16 @@ Result ParseValue(String expression, int *index)
                 current_number.base = 1;
             }
             current_number.derived_unit.units[0] = unit;
+            current_number.derived_unit.exponents[0] = 1;
             current_number.derived_unit.unit_count = 1;
+            unit_len = 0;
         }
         Result acc_potential = Add(acc, current_number);
         if (acc_potential.status != SUCCESS) {
             return acc_potential;
         }
         acc = acc_potential.value;
+        digits_parsed = 0;
     }
 
     acc = Balance(acc);
@@ -149,14 +152,22 @@ Result ParseUnary(String expression, int *index)
 Result ParseMulDiv(String expression, int *index)
 {
     Result op1 = ParseUnary(expression, index);
-    if (*index < expression.len && expression.chars[*index] == '*') {
-        AdvanceIndex(expression, index);
-        Result op2 = ParseUnary(expression, index);
-        return MultiplyResult(op1, op2);
-    } else if (*index < expression.len && expression.chars[*index] == '/') {
-        AdvanceIndex(expression, index);
-        Result op2 = ParseUnary(expression, index);
-        return DivideResult(op1, op2);
+    while (1) {
+        if (*index < expression.len && expression.chars[*index] == '*') {
+            AdvanceIndex(expression, index);
+            Result op2 = ParseUnary(expression, index);
+            op1 = MultiplyResult(op1, op2);
+            if (op1.status != SUCCESS)
+                return op1;
+        } else if (*index < expression.len && expression.chars[*index] == '/') {
+            AdvanceIndex(expression, index);
+            Result op2 = ParseUnary(expression, index);
+            op1 = DivideResult(op1, op2);
+            if (op1.status != SUCCESS)
+                return op1;
+        } else {
+            break;
+        }
     }
     return op1;
 }
@@ -164,14 +175,22 @@ Result ParseMulDiv(String expression, int *index)
 Result ParseAddSub(String expression, int *index)
 {
     Result op1 = ParseMulDiv(expression, index);
-    if (*index < expression.len && expression.chars[*index] == '+') {
-        AdvanceIndex(expression, index);
-        Result op2 = ParseMulDiv(expression, index);
-        return AddResult(op1, op2);
-    } else if (*index < expression.len && expression.chars[*index] == '-') {
-        AdvanceIndex(expression, index);
-        Result op2 = ParseMulDiv(expression, index);
-        return SubtractResult(op1, op2);
+    while (1) {
+        if (*index < expression.len && expression.chars[*index] == '+') {
+            AdvanceIndex(expression, index);
+            Result op2 = ParseMulDiv(expression, index);
+            op1 = AddResult(op1, op2);
+            if (op1.status != SUCCESS)
+                return op1;
+        } else if (*index < expression.len && expression.chars[*index] == '-') {
+            AdvanceIndex(expression, index);
+            Result op2 = ParseMulDiv(expression, index);
+            op1 = SubtractResult(op1, op2);
+            if (op1.status != SUCCESS)
+                return op1;
+        } else {
+            break;
+        }
     }
     return op1;
 }
@@ -184,8 +203,36 @@ Result ParseAndEvalExpression(char* expression)
 }
 
 
+void PrintUnits(DerivedUnit derived_unit) {
+    for (int i = 0; i < derived_unit.unit_count; i++) {
+        if (derived_unit.exponents[i] < 0) {
+            continue;
+        } else if (derived_unit.exponents[i] > 0 && i > 0) {
+            printf("*");
+        }
+        if (derived_unit.exponents[i] != 0) {
+            printf("%s", derived_unit.units[i]->abbreviation);
+        }
+        if (abs(derived_unit.exponents[i]) != 1) {
+            printf("%d", abs(derived_unit.exponents[i]));
+        }
+    }
+
+    for (int i = 0; i < derived_unit.unit_count; i++) {
+        if (derived_unit.exponents[i] < 0) {
+            printf("/");
+            printf("%s", derived_unit.units[i]->abbreviation);
+            if (abs(derived_unit.exponents[i]) != 1) {
+                printf("%d", abs(derived_unit.exponents[i]));
+            }
+        }
+    }
+}
+
 void PrintResultNoLine(Result result) {
     if (result.status == SUCCESS) {
+        result.value.derived_unit = BalanceUnit(result.value.derived_unit);
+
         if (result.value.sign)
             printf("-");
 
@@ -198,7 +245,7 @@ void PrintResultNoLine(Result result) {
         
         if (num > 0) {
             printf(".");
-            for (int i = 0; i < 40 && num > 0; i++) {
+            for (int i = 0; i < 25 && num > 0; i++) {
                 num *= 10;
                 int digit = (int)(num / denom);
                 printf("%d", digit);
@@ -208,32 +255,21 @@ void PrintResultNoLine(Result result) {
 
         // write all the multiplied units first, then the divided units
 
-        for (int i = 0; i < result.value.derived_unit.unit_count; i++) {
-            if (result.value.derived_unit.exponents[i] < 0) {
-                continue;
-            } else if (result.value.derived_unit.exponents[i] > 0 && i > 0) {
-                printf("*");
-            }
-            if (result.value.derived_unit.exponents[i] != 0) {
-                printf("%s", result.value.derived_unit.units[i]->abbreviation);
-            }
-            if (abs(result.value.derived_unit.exponents[i]) != 1) {
-                printf("%d", abs(result.value.derived_unit.exponents[i]));
-            }
-        }
+        PrintUnits(result.value.derived_unit);
 
-        for (int i = 0; i < result.value.derived_unit.unit_count; i++) {
-            if (result.value.derived_unit.exponents[i] < 0) {
-                printf("/");
-            } else if (result.value.derived_unit.exponents[i] > 0 && i > 0) {
-                continue;
+        num = result.value.numerator;
+        if (num > 0) {
+            printf("    { ");
+            if (result.value.sign)
+                printf("-");
+            if (result.value.base > 0)
+                printf("%llu ", result.value.base);
+            printf("%llu/%llu ", num, denom);
+            if (result.value.derived_unit.unit_count > 0) {
+                PrintUnits(result.value.derived_unit);
+                printf(" ");
             }
-            if (result.value.derived_unit.exponents[i] != 0) {
-                printf("%s", result.value.derived_unit.units[i]->abbreviation);
-            }
-            if (abs(result.value.derived_unit.exponents[i]) != 1) {
-                printf("%d", abs(result.value.derived_unit.exponents[i]));
-            }
+            printf("}");
         }
 
     } else {

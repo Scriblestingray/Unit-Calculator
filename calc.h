@@ -47,6 +47,7 @@ unsigned long long GCD(unsigned long long denom1, unsigned long long denom2);
 unsigned long long LCM(unsigned long long denom1, unsigned long long denom2);
 
 Number Balance(Number num);
+DerivedUnit BalanceUnit(DerivedUnit units);
 
 Result AddUnitless(Number num1, Number num2);
 Result MultiplyUnitless(Number num1, Number num2);

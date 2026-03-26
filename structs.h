@@ -4,12 +4,6 @@
 Data structures for the unit systems
 */
 
-typedef struct Quantity Quantity;
-struct Quantity
-{
-    char *name;
-};
-
 typedef struct Unit Unit;
 struct Unit
 {
@@ -19,7 +13,7 @@ struct Unit
     int multiplier;
     int divider; // NOTE: if 0, it is treated as if it was set to 1
     int offset; // offset is in terms of the unit itself
-    Quantity *quantity;
+    char *quantity;
 };
 
 typedef struct UnitSystem UnitSystem;
@@ -28,4 +22,11 @@ struct UnitSystem
     char *name;
     Unit *units;
     int unit_count;
+};
+
+typedef struct Systems Systems;
+struct Systems
+{
+    UnitSystem *systems;
+    int count;
 };

@@ -311,12 +311,27 @@ Result AddUnitless(Number num1, Number num2) {
 }
 
 Result Add(Number num1, Number num2) {
+    printf("before matching: ");
+    PrintResultNoLine((Result) { SUCCESS, num1 });
+    printf("  ");
+    PrintResult((Result) { SUCCESS, num2 });
+
     Result num2_result = MatchQuantities(num2, num1.derived_unit);
     if (num2_result.status != SUCCESS)
         return num2_result;
     num2 = num2_result.value;
 
-    return AddUnitless(num1, num2);
+    printf("after matching: ");
+    PrintResultNoLine((Result) { SUCCESS, num1 });
+    printf("  ");
+    PrintResult((Result) { SUCCESS, num2 });
+
+    Result result = AddUnitless(num1, num2);
+    if (result.status != SUCCESS)
+        return result;
+
+    result.value.derived_unit = num1.derived_unit.unit_count == 0 ? num2.derived_unit : num1.derived_unit;
+    return result;
 }
 
 Result Subtract(Number num1, Number num2) {

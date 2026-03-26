@@ -17,5 +17,3 @@ The architecture consists of three parts:
 - An interface for defining unit systems
 - A config file format; unit loads a config file on startup
 - A calculator that works with units
-
-5419351/1725033
