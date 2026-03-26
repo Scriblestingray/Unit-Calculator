@@ -10,8 +10,6 @@ struct Systems
 };
 
 Systems CreateSystems() {
-    
-
     Systems systems;
     systems.systems = malloc(10 * sizeof(UnitSystem));
     systems.count = 0;

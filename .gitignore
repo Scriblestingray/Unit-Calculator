@@ -6,4 +6,9 @@ x64/
 x86/
 *.obj
 *.exe
+<<<<<<< HEAD
 *.pdb
+=======
+*.pdb
+a.out
+>>>>>>> 87527667d7955dc5042f1cbe0fc7acff785b8894

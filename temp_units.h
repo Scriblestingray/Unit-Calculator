@@ -19,13 +19,13 @@ static Quantity temperature_quantity = (Quantity) {
 static Unit time_units[] = {
     (Unit)
     {
-        .abbreviation = "s",
+        .abbreviation = "sec",
         .is_base_unit = 1,
         .quantity = &time_quantity,
     },
     (Unit)
     {
-        .abbreviation = "m",
+        .abbreviation = "min",
         .is_base_unit = 0,
         .quantity = &time_quantity,
         .base_unit = &time_units[0],
@@ -34,7 +34,7 @@ static Unit time_units[] = {
     },
     (Unit)
     {
-        .abbreviation = "h",
+        .abbreviation = "hr",
         .is_base_unit = 0,
         .quantity = &time_quantity,
         .base_unit = &time_units[1],
@@ -43,7 +43,7 @@ static Unit time_units[] = {
     },
     (Unit)
     {
-        .abbreviation = "d",
+        .abbreviation = "dy",
         .is_base_unit = 0,
         .quantity = &time_quantity,
         .base_unit = &time_units[2],
@@ -92,7 +92,8 @@ static Unit metric_units[] = {
         .is_base_unit = 0,
         .quantity = &distance_quantity,
         .base_unit = &imperial_units[0],
-        .multiplier = 25.4,
+        .multiplier = 254,
+        .divider = 10,
         .offset = 0,
     },
     (Unit)
@@ -151,3 +152,5 @@ static UnitSystem unit_systems[] = {
         .unit_count = sizeof(metric_units) / sizeof(Unit)
     }
 };
+
+static int unit_system_count = 3;
