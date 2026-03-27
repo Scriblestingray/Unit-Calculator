@@ -3,6 +3,9 @@
 #include "temp_units.h"
 
 #include <stdio.h>
+#include <string.h>
+#include <wchar.h>
+#include <locale.h>
 
 typedef struct {
     char *expression;
@@ -52,7 +55,17 @@ static ParseTestEntry parse_entries[] = {
     { "1m + 12", 0, 13, 0, 1, (DerivedUnit) { { &metric_units[2] }, { 1 }, 1 } },
     { "5 - 4m", 0, 1, 0, 1, (DerivedUnit) { { &metric_units[2] }, { 1 }, 1 } },
     { "45 * 3.4m", 0, 153, 0, 1, (DerivedUnit) { { &metric_units[2] }, { 1 }, 1 } },
-    { "40 / .1m", 0, 400, 0, 1, (DerivedUnit) { { &metric_units[2] }, { 1 }, 1 } },
+    { "40 / .1m", 0, 400, 0, 1, (DerivedUnit) { { &metric_units[2] }, { -1 }, 1 } },
+    // same unit
+    { "1m + 12m", 0, 13, 0, 1, (DerivedUnit) { { &metric_units[2] }, { 1 }, 1 } },
+    { "5m - 4m", 0, 1, 0, 1, (DerivedUnit) { { &metric_units[2] }, { 1 }, 1 } },
+    { "45m * 3.4m", 0, 153, 0, 1, (DerivedUnit) { { &metric_units[2] }, { 2 }, 1 } },
+    { "40m / .1m", 0, 400, 0, 1 },
+    // different units
+    { "1m + 100cm", 0, 2, 0, 1, (DerivedUnit) { { &metric_units[2] }, { 1 }, 1 } },
+    { "2km - 10000cm", 0, 1, 0, 1, (DerivedUnit) { { &metric_units[3] }, { 1 }, 1 } },
+    { "1km * 1000m", 0, 1, 0, 1, (DerivedUnit) { { &metric_units[3] }, { 2 }, 1 } },
+    { "100cm + 1m", 0, 200, 0, 1, (DerivedUnit) { { &metric_units[1] }, { 1 }, 1 } },
     { 0 },
     // all forms of expressions with one number being a unit, both having same units
     // both having different units of the same quantity,
@@ -67,8 +80,8 @@ int DerivedUnitEquals(DerivedUnit unit1, DerivedUnit unit2) {
     if (unit1.unit_count != unit2.unit_count)
         return 0;
     for (int i = 0; i < unit1.unit_count; i++) {
-        printf("compare %lld, %lld, %d, %d\n", unit1.units[i], unit2.units[i], unit1.exponents[i], unit2.exponents[i]);
-        if (unit1.units[i] != unit2.units[i] || unit1.exponents[i] != unit2.exponents[i])
+        if (strncmp(unit1.units[i]->abbreviation, unit2.units[i]->abbreviation, 20) != 0 || 
+                unit1.exponents[i] != unit2.exponents[i])
             return 0;
     }
     return 1;
@@ -81,6 +94,7 @@ int NumEquals(Number num1, Number num2) {
 }
 
 int main() {
+    setlocale(LC_ALL, "");
     ParseTestEntry *entry = &parse_entries[0];
 
     int tested = 0;

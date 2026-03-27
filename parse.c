@@ -5,6 +5,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include <wchar.h>
 
 #include "parse.h"
 
@@ -42,7 +43,7 @@ Unit* SearchUnit(char *chars, int len) {
     for (int i = 0; i < unit_system_count; i++) {
         UnitSystem *system = &unit_systems[i];
         for (int j = 0; j < system->unit_count; j++) {
-            if (strncmp(chars, system->units[j].abbreviation, len) == 0)
+            if (strncmp(chars, system->units[j].abbreviation, MAX_UNIT_LEN) == 0)
                 return &system->units[j];
         }
     }
@@ -93,6 +94,7 @@ Result ParseValue(String expression, int *index)
             }
             AdvanceIndex(expression, index);
         }
+        memset(unit_chars, 0, MAX_UNIT_LEN);
         while (unit_len < MAX_UNIT_LEN && IsAlpha(expression.chars[*index])) {
             unit_chars[unit_len] = Lowercase(expression.chars[*index]);
             unit_len++;
@@ -202,19 +204,29 @@ Result ParseAndEvalExpression(char* expression)
     return ParseAddSub(str, &index);
 }
 
+void PrintSuperscript(int num) {
+    char chars[25] = { 0 };
+    wchar_t *nums = L"⁰¹²³⁴⁵⁶⁷⁸⁹";
+    int len = sprintf(chars, "%d", num);
+    for (int i = 0; i < len; i++) {
+        printf("%lc", nums[chars[i] - '0']);
+    }
+}
 
 void PrintUnits(DerivedUnit derived_unit) {
+    int first = 1;
     for (int i = 0; i < derived_unit.unit_count; i++) {
         if (derived_unit.exponents[i] < 0) {
             continue;
-        } else if (derived_unit.exponents[i] > 0 && i > 0) {
+        } else if (derived_unit.exponents[i] > 0 && !first) {
             printf("*");
         }
         if (derived_unit.exponents[i] != 0) {
+            first = 0;
             printf("%s", derived_unit.units[i]->abbreviation);
         }
         if (abs(derived_unit.exponents[i]) != 1) {
-            printf("%d", abs(derived_unit.exponents[i]));
+            PrintSuperscript(abs(derived_unit.exponents[i]));
         }
     }
 
@@ -223,7 +235,7 @@ void PrintUnits(DerivedUnit derived_unit) {
             printf("/");
             printf("%s", derived_unit.units[i]->abbreviation);
             if (abs(derived_unit.exponents[i]) != 1) {
-                printf("%d", abs(derived_unit.exponents[i]));
+                PrintSuperscript(abs(derived_unit.exponents[i]));
             }
         }
     }

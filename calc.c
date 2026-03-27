@@ -4,6 +4,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 Number NumberInit() {
     return (Number) {
@@ -44,6 +45,8 @@ Number Balance(Number num) {
     return num;
 }
 
+#include "parse.h"
+
 typedef enum Direction Direction;
 enum Direction
 {
@@ -61,7 +64,7 @@ struct UnitChain
 
 UnitChain *BuildChain(Unit *current_unit, Unit *last_unit) {
     
-    // current_unit and last_unit are directly related to each other
+    // case 1: current_unit and last_unit are directly related to each other
 
     if (!last_unit->is_base_unit && last_unit->base_unit == current_unit) {
         UnitChain *chain = malloc(sizeof(UnitChain));
@@ -82,6 +85,7 @@ UnitChain *BuildChain(Unit *current_unit, Unit *last_unit) {
         return chain;
     }
 
+    // case 2:
     // they are NOT related to each other, propagate the chain one step forward
     // by recursively finding a chain using the current_unit's base unit.
 
@@ -99,6 +103,7 @@ UnitChain *BuildChain(Unit *current_unit, Unit *last_unit) {
         free(inner);
     }
 
+    // case 3:
     // propagating in that direction didn't work, or current unit has no
     // base unit.
     // try going the other direction: find a unit that uses current unit
@@ -133,19 +138,23 @@ UnitChain *BuildChain(Unit *current_unit, Unit *last_unit) {
 
 // NOTE: This does not touch the derived_units inside num. This only adjusts the values.
 Result ConvertUnit(Number num, Unit *old_unit, Unit *new_unit) {
+    DerivedUnit old_derived_unit = num.derived_unit;
+
     UnitChain *chain = BuildChain(old_unit, new_unit);
     UnitChain *prev_chain = 0;
+    printf("-- Chain:\n");
     for (; chain != 0; chain = chain->next) {
+        printf("|| %s %s\n", chain->unit->abbreviation, chain->direction ? "BACKWARDS" : "FORWARDS");
         if (prev_chain != 0)
             free(prev_chain);
         prev_chain = chain;
-        if (chain->direction == FORWARDS) {
+        if (chain->direction == BACKWARDS) {
             // num = num * multiplier / divider + offset
             Number mul = (Number) {
                 .sign = 0,
                 .base = 0,
-                .numerator = chain->unit->multiplier,
-                .denominator = chain->unit->divider,
+                .numerator = chain->unit->multiplier == 0 ? 1 : chain->unit->multiplier,
+                .denominator = chain->unit->divider == 0 ? 1 : chain->unit->divider,
             };
             Result inter = MultiplyUnitless(num, mul);
             if (inter.status != SUCCESS)
@@ -155,7 +164,7 @@ Result ConvertUnit(Number num, Unit *old_unit, Unit *new_unit) {
                 .base = abs(chain->unit->offset),
                 .denominator = 1,
             };
-            inter = MultiplyUnitless(inter.value, add);
+            inter = AddUnitless(inter.value, add);
             if (inter.status != SUCCESS)
                 return inter;
             num = inter.value;
@@ -172,8 +181,8 @@ Result ConvertUnit(Number num, Unit *old_unit, Unit *new_unit) {
             Number mul = (Number) {
                 .sign = 0,
                 .base = 0,
-                .numerator = chain->unit->divider,
-                .denominator = chain->unit->multiplier,
+                .numerator = chain->unit->divider == 0 ? 1 : chain->unit->divider,
+                .denominator = chain->unit->multiplier == 0 ? 1 : chain->unit->multiplier,
             };
             inter = MultiplyUnitless(inter.value, mul);
             if (inter.status != SUCCESS)
@@ -181,6 +190,8 @@ Result ConvertUnit(Number num, Unit *old_unit, Unit *new_unit) {
             num = inter.value;
         }
     }
+
+    num.derived_unit = old_derived_unit;
 
     return (Result) {.status = SUCCESS, .value = num};
 }
@@ -190,13 +201,20 @@ Result ConvertUnit(Number num, Unit *old_unit, Unit *new_unit) {
 Result MatchUnits(Number num, DerivedUnit units) {
     for (int i = 0; i < num.derived_unit.unit_count; i++) {
         for (int j = 0; j < units.unit_count; j++) {
-            if (num.derived_unit.units[i]->quantity == units.units[j]->quantity &&
-                num.derived_unit.exponents[i] == units.exponents[j]) {
+            if (strncmp(num.derived_unit.units[i]->quantity, units.units[j]->quantity, 20) == 0 &&
+                num.derived_unit.exponents[i] == units.exponents[j] &&
+                strncmp(num.derived_unit.units[i]->abbreviation, units.units[j]->abbreviation, 20) != 0) {
+                printf("-- Converting from %s to %s\n", num.derived_unit.units[i]->abbreviation, units.units[j]->abbreviation);
+                printf("-- Before: ");
+                PrintResult((Result) { SUCCESS, num });
                 Result result = ConvertUnit(num, num.derived_unit.units[i], units.units[j]);
                 if (result.status != SUCCESS)
                     return result;
                 num = result.value;
                 num.derived_unit.units[i] = units.units[j];
+                printf("-- After: ");
+                PrintResult((Result) {SUCCESS, num});
+                break;
             }
         }
     }
@@ -251,6 +269,8 @@ Result MatchQuantities(Number num, DerivedUnit units) {
     units = BalanceUnit(units);
     matched.value.derived_unit = BalanceUnit(matched.value.derived_unit);
     
+    num = matched.value;
+    
     if (units.unit_count != 0 && num.derived_unit.unit_count != 0) {
         if (units.unit_count != num.derived_unit.unit_count) {
             return (Result) { .status = UNITS_DONT_MATCH };
@@ -262,8 +282,6 @@ Result MatchQuantities(Number num, DerivedUnit units) {
     }
     return matched;
 }
-
-#include "parse.h"
 
 Result AddUnitless(Number num1, Number num2) {
     int signs_unequal = num1.sign != num2.sign;
@@ -311,20 +329,10 @@ Result AddUnitless(Number num1, Number num2) {
 }
 
 Result Add(Number num1, Number num2) {
-    printf("before matching: ");
-    PrintResultNoLine((Result) { SUCCESS, num1 });
-    printf("  ");
-    PrintResult((Result) { SUCCESS, num2 });
-
     Result num2_result = MatchQuantities(num2, num1.derived_unit);
     if (num2_result.status != SUCCESS)
         return num2_result;
     num2 = num2_result.value;
-
-    printf("after matching: ");
-    PrintResultNoLine((Result) { SUCCESS, num1 });
-    printf("  ");
-    PrintResult((Result) { SUCCESS, num2 });
 
     Result result = AddUnitless(num1, num2);
     if (result.status != SUCCESS)
@@ -418,7 +426,8 @@ Result Divide(Number num1, Number num2) {
     Number reciprocal = (Number) {
         .sign = num2.sign,
         .numerator = num2.denominator,
-        .denominator = num2.base * num2.denominator + num2.numerator
+        .denominator = num2.base * num2.denominator + num2.numerator,
+        .derived_unit = num2.derived_unit
     };
     reciprocal = Balance(reciprocal);
     for (int i = 0; i < reciprocal.derived_unit.unit_count; i++) {

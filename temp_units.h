@@ -4,30 +4,18 @@
 
 // hardcoding some units for now, in order to test the system.
 
-static Quantity time_quantity = (Quantity) {
-    .name = "time",
-};
-
-static Quantity distance_quantity = (Quantity) {
-    .name = "distance",
-};
-
-static Quantity temperature_quantity = (Quantity) {
-    .name = "temperature",
-};
-
 static Unit time_units[] = {
     (Unit)
     {
         .abbreviation = "sec",
         .is_base_unit = 1,
-        .quantity = &time_quantity,
+        .quantity = "time",
     },
     (Unit)
     {
         .abbreviation = "min",
         .is_base_unit = 0,
-        .quantity = &time_quantity,
+        .quantity = "time",
         .base_unit = &time_units[0],
         .multiplier = 60,
         .offset = 0,
@@ -36,7 +24,7 @@ static Unit time_units[] = {
     {
         .abbreviation = "hr",
         .is_base_unit = 0,
-        .quantity = &time_quantity,
+        .quantity = "time",
         .base_unit = &time_units[1],
         .multiplier = 60,
         .offset = 0,
@@ -45,7 +33,7 @@ static Unit time_units[] = {
     {
         .abbreviation = "dy",
         .is_base_unit = 0,
-        .quantity = &time_quantity,
+        .quantity = "time",
         .base_unit = &time_units[2],
         .multiplier = 24,
         .offset = 0,
@@ -57,13 +45,13 @@ static Unit imperial_units[] = {
     {
         .abbreviation = "in",
         .is_base_unit = 1,
-        .quantity = &distance_quantity,
+        .quantity = "distance",
     },
     (Unit)
     {
         .abbreviation = "ft",
         .is_base_unit = 0,
-        .quantity = &distance_quantity,
+        .quantity = "distance",
         .base_unit = &imperial_units[0],
         .multiplier = 12,
         .offset = 0,
@@ -72,16 +60,16 @@ static Unit imperial_units[] = {
     {
         .abbreviation = "mi",
         .is_base_unit = 0,
-        .quantity = &distance_quantity,
+        .quantity = "distance",
         .base_unit = &imperial_units[1],
         .multiplier = 5280,
         .offset = 0,
     },
     (Unit)
     {
-        .abbreviation = "˚F",
+        .abbreviation = "F",
         .is_base_unit = 1,
-        .quantity = &temperature_quantity,
+        .quantity = "temperature",
     },
 };
 
@@ -90,7 +78,7 @@ static Unit metric_units[] = {
     {
         .abbreviation = "mm",
         .is_base_unit = 0,
-        .quantity = &distance_quantity,
+        .quantity = "distance",
         .base_unit = &imperial_units[0],
         .multiplier = 254,
         .divider = 10,
@@ -100,7 +88,7 @@ static Unit metric_units[] = {
     {
         .abbreviation = "cm",
         .is_base_unit = 0,
-        .quantity = &distance_quantity,
+        .quantity = "distance",
         .base_unit = &metric_units[0],
         .multiplier = 10,
         .offset = 0,
@@ -109,7 +97,7 @@ static Unit metric_units[] = {
     {
         .abbreviation = "m",
         .is_base_unit = 0,
-        .quantity = &distance_quantity,
+        .quantity = "distance",
         .base_unit = &metric_units[1],
         .multiplier = 100,
         .offset = 0,
@@ -118,16 +106,16 @@ static Unit metric_units[] = {
     {
         .abbreviation = "km",
         .is_base_unit = 0,
-        .quantity = &distance_quantity,
-        .base_unit = &metric_units[1],
-        .multiplier = 100,
+        .quantity = "distance",
+        .base_unit = &metric_units[2],
+        .multiplier = 1000,
         .offset = 0,
     },
     (Unit)
     {
         .abbreviation = "˚F",
         .is_base_unit = 0,
-        .quantity = &temperature_quantity,
+        .quantity = "temperature",
         .base_unit = &imperial_units[3],
         .multiplier = 9,
         .divider = 5,
