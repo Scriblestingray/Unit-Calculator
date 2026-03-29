@@ -17,7 +17,8 @@ int main(int argc, char **argv)
     if (argc > 1)
     {
         // Evaluate each argument as an expression
-        for (int i = 1; i < argc; i++) {
+        for (int i = 1; i < argc; i++)
+        {
             Result result = ParseAndEvalExpression(argv[i], systems);
             printf("%s = \n", argv[i]);
             PrintResult(result);
@@ -35,7 +36,8 @@ int main(int argc, char **argv)
             printf(">> ");
             char str[256] = {0};
             int index = -1;
-            do {
+            do
+            {
                 index++;
                 str[index] = getchar();
             } while (index < 255 && str[index] != '\n');

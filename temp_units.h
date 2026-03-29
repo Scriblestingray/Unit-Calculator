@@ -5,14 +5,12 @@
 // hardcoding some units for now, in order to test the system.
 
 static Unit time_units[] = {
-    (Unit)
-    {
+    (Unit){
         .abbreviation = "s",
         .is_base_unit = 1,
         .quantity = "time",
     },
-    (Unit)
-    {
+    (Unit){
         .abbreviation = "min",
         .is_base_unit = 0,
         .quantity = "time",
@@ -20,8 +18,7 @@ static Unit time_units[] = {
         .multiplier = 60,
         .offset = 0,
     },
-    (Unit)
-    {
+    (Unit){
         .abbreviation = "hr",
         .is_base_unit = 0,
         .quantity = "time",
@@ -29,26 +26,22 @@ static Unit time_units[] = {
         .multiplier = 60,
         .offset = 0,
     },
-    (Unit)
-    {
+    (Unit){
         .abbreviation = "dy",
         .is_base_unit = 0,
         .quantity = "time",
         .base_unit = &time_units[2],
         .multiplier = 24,
         .offset = 0,
-    }
-};
+    }};
 
 static Unit imperial_units[] = {
-    (Unit)
-    {
+    (Unit){
         .abbreviation = "in",
         .is_base_unit = 1,
         .quantity = "distance",
     },
-    (Unit)
-    {
+    (Unit){
         .abbreviation = "ft",
         .is_base_unit = 0,
         .quantity = "distance",
@@ -56,8 +49,7 @@ static Unit imperial_units[] = {
         .multiplier = 12,
         .offset = 0,
     },
-    (Unit)
-    {
+    (Unit){
         .abbreviation = "mi",
         .is_base_unit = 0,
         .quantity = "distance",
@@ -65,8 +57,7 @@ static Unit imperial_units[] = {
         .multiplier = 5280,
         .offset = 0,
     },
-    (Unit)
-    {
+    (Unit){
         .abbreviation = "F",
         .is_base_unit = 1,
         .quantity = "temperature",
@@ -74,8 +65,7 @@ static Unit imperial_units[] = {
 };
 
 static Unit metric_units[] = {
-    (Unit)
-    {
+    (Unit){
         .abbreviation = "mm",
         .is_base_unit = 0,
         .quantity = "distance",
@@ -84,8 +74,7 @@ static Unit metric_units[] = {
         .divider = 254,
         .offset = 0,
     },
-    (Unit)
-    {
+    (Unit){
         .abbreviation = "cm",
         .is_base_unit = 0,
         .quantity = "distance",
@@ -93,8 +82,7 @@ static Unit metric_units[] = {
         .multiplier = 10,
         .offset = 0,
     },
-    (Unit)
-    {
+    (Unit){
         .abbreviation = "m",
         .is_base_unit = 0,
         .quantity = "distance",
@@ -102,8 +90,7 @@ static Unit metric_units[] = {
         .multiplier = 100,
         .offset = 0,
     },
-    (Unit)
-    {
+    (Unit){
         .abbreviation = "km",
         .is_base_unit = 0,
         .quantity = "distance",
@@ -111,8 +98,7 @@ static Unit metric_units[] = {
         .multiplier = 1000,
         .offset = 0,
     },
-    (Unit)
-    {
+    (Unit){
         .abbreviation = "˚F",
         .is_base_unit = 0,
         .quantity = "temperature",
@@ -124,21 +110,17 @@ static Unit metric_units[] = {
 };
 
 static UnitSystem unit_systems[] = {
-    (UnitSystem) {
+    (UnitSystem){
         .name = "time",
         .units = time_units,
-        .unit_count = sizeof(time_units) / sizeof(Unit)
-    },
-    (UnitSystem) {
+        .unit_count = sizeof(time_units) / sizeof(Unit)},
+    (UnitSystem){
         .name = "imperial",
         .units = imperial_units,
-        .unit_count = sizeof(imperial_units) / sizeof(Unit)
-    },
-    (UnitSystem) {
+        .unit_count = sizeof(imperial_units) / sizeof(Unit)},
+    (UnitSystem){
         .name = "metric",
         .units = metric_units,
-        .unit_count = sizeof(metric_units) / sizeof(Unit)
-    }
-};
+        .unit_count = sizeof(metric_units) / sizeof(Unit)}};
 
 static int unit_system_count = 3;

@@ -9,37 +9,44 @@
 
 #include "parse.h"
 
-int IsAlpha(char chr) {
+int IsAlpha(char chr)
+{
     return (chr >= 'A' && chr <= 'Z') || (chr >= 'a' && chr <= 'z');
 }
 
-int IsDigit(char chr) {
+int IsDigit(char chr)
+{
     return (chr >= '0' && chr <= '9') || chr == '.';
 }
 
-int IsAlphanumeric(char chr) {
+int IsAlphanumeric(char chr)
+{
     return IsAlpha(chr) || IsDigit(chr);
 }
 
-char Lowercase(char chr) {
+char Lowercase(char chr)
+{
     return chr >= 'A' && chr <= 'Z' ? chr + 32 : chr;
 }
 
 void AdvanceIndex(String expression, int *index)
 {
-    do {
+    do
+    {
         (*index)++;
-    }
-    while (*index < expression.len && (expression.chars[*index] == ' ' ||
-            expression.chars[*index] == '\t' || expression.chars[*index] == '\n'));
+    } while (*index < expression.len && (expression.chars[*index] == ' ' ||
+                                         expression.chars[*index] == '\t' || expression.chars[*index] == '\n'));
 }
 
 #define MAX_UNIT_LEN 10
 
-Unit* SearchUnit(char *chars, int len, Systems systems) {
-    for (int i = 0; i < systems.count; i++) {
+Unit *SearchUnit(char *chars, int len, Systems systems)
+{
+    for (int i = 0; i < systems.count; i++)
+    {
         UnitSystem *system = &systems.systems[i];
-        for (int j = 0; j < system->unit_count; j++) {
+        for (int j = 0; j < system->unit_count; j++)
+        {
             if (strncmp(chars, system->units[j].abbreviation, MAX_UNIT_LEN) == 0)
                 return &system->units[j];
         }
@@ -53,13 +60,15 @@ Result ParseAddSub(String expression, int *index, Systems systems);
 Result ParseValue(String expression, int *index, Systems systems)
 {
     if (*index >= expression.len)
-        return (Result) {.status = UNEXPECTED_END};
+        return (Result){.status = UNEXPECTED_END};
 
-    if (expression.chars[*index] == '(') {
+    if (expression.chars[*index] == '(')
+    {
         AdvanceIndex(expression, index);
         Result inner = ParseAddSub(expression, index, systems);
-        if (*index >= expression.len || expression.chars[*index] != ')') {
-            return (Result) { .status = EXPECTED_RPAREN };
+        if (*index >= expression.len || expression.chars[*index] != ')')
+        {
+            return (Result){.status = EXPECTED_RPAREN};
         }
         AdvanceIndex(expression, index);
         return inner;
@@ -67,24 +76,31 @@ Result ParseValue(String expression, int *index, Systems systems)
 
     Number acc = NumberInit();
 
-    while (*index < expression.len && IsAlphanumeric(expression.chars[*index])) {
+    while (*index < expression.len && IsAlphanumeric(expression.chars[*index]))
+    {
         unsigned long long mul = 1;
         int is_fraction = 0;
         Number current_number = NumberInit();
-        char unit_chars[MAX_UNIT_LEN] = { 0 };
+        char unit_chars[MAX_UNIT_LEN] = {0};
         int unit_len = 0;
         int digits_parsed = 0;
-        while (*index < expression.len && IsDigit(expression.chars[*index])) {
+        while (*index < expression.len && IsDigit(expression.chars[*index]))
+        {
             digits_parsed = 1;
-            if (expression.chars[*index] == '.') {
+            if (expression.chars[*index] == '.')
+            {
                 is_fraction = 1;
                 mul = 1;
-            } else if (is_fraction) {
+            }
+            else if (is_fraction)
+            {
                 // ideally check overflow
                 current_number.numerator *= 10;
                 current_number.denominator *= 10;
                 current_number.numerator += expression.chars[*index] - '0';
-            } else {
+            }
+            else
+            {
                 // ideally check overflow
                 current_number.base *= 10;
                 current_number.base += expression.chars[*index] - '0';
@@ -92,17 +108,21 @@ Result ParseValue(String expression, int *index, Systems systems)
             AdvanceIndex(expression, index);
         }
         memset(unit_chars, 0, MAX_UNIT_LEN);
-        while (unit_len < MAX_UNIT_LEN && IsAlpha(expression.chars[*index])) {
+        while (unit_len < MAX_UNIT_LEN && IsAlpha(expression.chars[*index]))
+        {
             unit_chars[unit_len] = Lowercase(expression.chars[*index]);
             unit_len++;
             AdvanceIndex(expression, index);
         }
-        if (unit_len > 0) {
-            Unit* unit = SearchUnit(unit_chars, unit_len, systems);
-            if (unit == NULL) {
-                return (Result) { .status = NO_SUCH_UNIT };
+        if (unit_len > 0)
+        {
+            Unit *unit = SearchUnit(unit_chars, unit_len, systems);
+            if (unit == NULL)
+            {
+                return (Result){.status = NO_SUCH_UNIT};
             }
-            if (NumberIsZero(current_number) && !digits_parsed) {
+            if (NumberIsZero(current_number) && !digits_parsed)
+            {
                 current_number.base = 1;
             }
             current_number.derived_unit.units[0] = unit;
@@ -111,7 +131,8 @@ Result ParseValue(String expression, int *index, Systems systems)
             unit_len = 0;
         }
         Result acc_potential = Add(acc, current_number, systems);
-        if (acc_potential.status != SUCCESS) {
+        if (acc_potential.status != SUCCESS)
+        {
             return acc_potential;
         }
         acc = acc_potential.value;
@@ -120,27 +141,36 @@ Result ParseValue(String expression, int *index, Systems systems)
 
     acc = Balance(acc);
 
-    return (Result) { .status = SUCCESS, .value = acc };
+    return (Result){.status = SUCCESS, .value = acc};
 }
 
-typedef enum {
-    POS, NEG, IDENTITY
+typedef enum
+{
+    POS,
+    NEG,
+    IDENTITY
 } UnaryOp;
 
 Result ParseUnary(String expression, int *index, Systems systems)
 {
     UnaryOp op = IDENTITY;
-    if (*index < expression.len &&expression.chars[*index] == '+') {
+    if (*index < expression.len && expression.chars[*index] == '+')
+    {
         op = POS;
         AdvanceIndex(expression, index);
-    } else if (*index < expression.len && expression.chars[*index] == '-') {
+    }
+    else if (*index < expression.len && expression.chars[*index] == '-')
+    {
         op = NEG;
         AdvanceIndex(expression, index);
     }
     Result value = ParseValue(expression, index, systems);
-    if (op == NEG) {
+    if (op == NEG)
+    {
         value.value.sign = !value.value.sign;
-    } else if (op == POS) {
+    }
+    else if (op == POS)
+    {
         value.value.sign = 0;
     }
     return value;
@@ -151,20 +181,26 @@ Result ParseUnary(String expression, int *index, Systems systems)
 Result ParseMulDiv(String expression, int *index, Systems systems)
 {
     Result op1 = ParseUnary(expression, index, systems);
-    while (1) {
-        if (*index < expression.len && expression.chars[*index] == '*') {
+    while (1)
+    {
+        if (*index < expression.len && expression.chars[*index] == '*')
+        {
             AdvanceIndex(expression, index);
             Result op2 = ParseUnary(expression, index, systems);
             op1 = MultiplyResult(op1, op2, systems);
             if (op1.status != SUCCESS)
                 return op1;
-        } else if (*index < expression.len && expression.chars[*index] == '/') {
+        }
+        else if (*index < expression.len && expression.chars[*index] == '/')
+        {
             AdvanceIndex(expression, index);
             Result op2 = ParseUnary(expression, index, systems);
             op1 = DivideResult(op1, op2, systems);
             if (op1.status != SUCCESS)
                 return op1;
-        } else {
+        }
+        else
+        {
             break;
         }
     }
@@ -174,72 +210,92 @@ Result ParseMulDiv(String expression, int *index, Systems systems)
 Result ParseAddSub(String expression, int *index, Systems systems)
 {
     Result op1 = ParseMulDiv(expression, index, systems);
-    while (1) {
-        if (*index < expression.len && expression.chars[*index] == '+') {
+    while (1)
+    {
+        if (*index < expression.len && expression.chars[*index] == '+')
+        {
             AdvanceIndex(expression, index);
             Result op2 = ParseMulDiv(expression, index, systems);
             op1 = AddResult(op1, op2, systems);
             if (op1.status != SUCCESS)
                 return op1;
-        } else if (*index < expression.len && expression.chars[*index] == '-') {
+        }
+        else if (*index < expression.len && expression.chars[*index] == '-')
+        {
             AdvanceIndex(expression, index);
             Result op2 = ParseMulDiv(expression, index, systems);
             op1 = SubtractResult(op1, op2, systems);
             if (op1.status != SUCCESS)
                 return op1;
-        } else {
+        }
+        else
+        {
             break;
         }
     }
     return op1;
 }
 
-Result ParseAndEvalExpression(char* expression, Systems systems)
+Result ParseAndEvalExpression(char *expression, Systems systems)
 {
-    String str = (String) {.chars = expression, .len = strnlen(expression, 256)};
+    String str = (String){.chars = expression, .len = strnlen(expression, 256)};
     int index = 0;
     return ParseAddSub(str, &index, systems);
 }
 
-void PrintSuperscript(int num) {
-    char chars[25] = { 0 };
+void PrintSuperscript(int num)
+{
+    char chars[25] = {0};
     wchar_t *nums = L"⁰¹²³⁴⁵⁶⁷⁸⁹";
     int len = sprintf(chars, "%d", num);
-    for (int i = 0; i < len; i++) {
+    for (int i = 0; i < len; i++)
+    {
         printf("%lc", nums[chars[i] - '0']);
     }
 }
 
-void PrintUnits(DerivedUnit derived_unit) {
+void PrintUnits(DerivedUnit derived_unit)
+{
     int first = 1;
-    for (int i = 0; i < derived_unit.unit_count; i++) {
-        if (derived_unit.exponents[i] < 0) {
+    for (int i = 0; i < derived_unit.unit_count; i++)
+    {
+        if (derived_unit.exponents[i] < 0)
+        {
             continue;
-        } else if (derived_unit.exponents[i] > 0 && !first) {
+        }
+        else if (derived_unit.exponents[i] > 0 && !first)
+        {
             printf("*");
         }
-        if (derived_unit.exponents[i] != 0) {
+        if (derived_unit.exponents[i] != 0)
+        {
             first = 0;
             printf("%s", derived_unit.units[i]->abbreviation);
         }
-        if (abs(derived_unit.exponents[i]) != 1) {
+        if (abs(derived_unit.exponents[i]) != 1)
+        {
             PrintSuperscript(abs(derived_unit.exponents[i]));
         }
     }
 
-    for (int i = 0; i < derived_unit.unit_count; i++) {
-        if (derived_unit.exponents[i] < 0) {
+    for (int i = 0; i < derived_unit.unit_count; i++)
+    {
+        if (derived_unit.exponents[i] < 0)
+        {
             printf("/");
             printf("%s", derived_unit.units[i]->abbreviation);
-            if (abs(derived_unit.exponents[i]) != 1) {
+            if (abs(derived_unit.exponents[i]) != 1)
+            {
                 PrintSuperscript(abs(derived_unit.exponents[i]));
             }
         }
     }
 }
 
-void PrintResultNoLine(Result result) {
-    if (result.status == SUCCESS) {
+void PrintResultNoLine(Result result)
+{
+    if (result.status == SUCCESS)
+    {
         result.value.derived_unit = BalanceUnit(result.value.derived_unit);
 
         if (result.value.sign)
@@ -251,14 +307,16 @@ void PrintResultNoLine(Result result) {
 
         unsigned long long num = result.value.numerator;
         unsigned long long denom = result.value.denominator;
-        
-        if (num > 0) {
+
+        if (num > 0)
+        {
             printf(".");
-            for (int i = 0; i < 25 && num > 0; i++) {
+            for (int i = 0; i < 25 && num > 0; i++)
+            {
                 num *= 10;
                 int digit = (int)(num / denom);
                 printf("%d", digit);
-                num -= ((unsigned long long) digit) * denom;
+                num -= ((unsigned long long)digit) * denom;
             }
         }
 
@@ -267,30 +325,62 @@ void PrintResultNoLine(Result result) {
         PrintUnits(result.value.derived_unit);
 
         num = result.value.numerator;
-        if (num > 0) {
+        if (num > 0)
+        {
             printf("    { ");
             if (result.value.sign)
                 printf("-");
             if (result.value.base > 0)
                 printf("%llu ", result.value.base);
             printf("%llu/%llu ", num, denom);
-            if (result.value.derived_unit.unit_count > 0) {
+            if (result.value.derived_unit.unit_count > 0)
+            {
                 PrintUnits(result.value.derived_unit);
                 printf(" ");
             }
             printf("}");
         }
-
-    } else {
+    }
+    else
+    {
         printf("ERROR: ");
-        switch (result.status) {
-            case SUCCESS: { printf("UNREACHABLE."); break; }
-            case SYNTAX_ERROR: { printf("Invalid syntax."); break; }
-            case NUMBER_TOO_LARGE: { printf("Resulting numbers are too large."); break; }
-            case NO_SUCH_UNIT: { printf("No such unit."); break; }
-            case EXPECTED_RPAREN: { printf("Missing parenthesis."); break; }
-            case UNEXPECTED_END: { printf("Unexpected end of expression."); break; }
-            case UNITS_DONT_MATCH: { printf("Units do not match."); break; }
+        switch (result.status)
+        {
+        case SUCCESS:
+        {
+            printf("UNREACHABLE.");
+            break;
+        }
+        case SYNTAX_ERROR:
+        {
+            printf("Invalid syntax.");
+            break;
+        }
+        case NUMBER_TOO_LARGE:
+        {
+            printf("Resulting numbers are too large.");
+            break;
+        }
+        case NO_SUCH_UNIT:
+        {
+            printf("No such unit.");
+            break;
+        }
+        case EXPECTED_RPAREN:
+        {
+            printf("Missing parenthesis.");
+            break;
+        }
+        case UNEXPECTED_END:
+        {
+            printf("Unexpected end of expression.");
+            break;
+        }
+        case UNITS_DONT_MATCH:
+        {
+            printf("Units do not match.");
+            break;
+        }
         }
         // print error. also print location in expression if char_start >= 0
     }

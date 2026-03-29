@@ -5,14 +5,16 @@
 #define DERIVED_UNIT_LENGTH 10
 
 typedef struct DerivedUnit DerivedUnit;
-struct DerivedUnit {
+struct DerivedUnit
+{
     Unit *units[DERIVED_UNIT_LENGTH];
     int exponents[DERIVED_UNIT_LENGTH];
     int unit_count;
 };
 
 typedef struct Number Number;
-struct Number {
+struct Number
+{
     int sign; // 0 = positive, 1 = negative
     unsigned long long base;
     unsigned long long numerator;
@@ -21,7 +23,8 @@ struct Number {
 };
 
 typedef enum Status Status;
-enum Status {
+enum Status
+{
     SUCCESS = 0,
     SYNTAX_ERROR,
     NUMBER_TOO_LARGE,
@@ -32,7 +35,8 @@ enum Status {
 };
 
 typedef struct Result Result;
-struct Result {
+struct Result
+{
     Status status;
     Number value;
     int char_start;

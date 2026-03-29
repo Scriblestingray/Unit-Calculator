@@ -12,7 +12,7 @@ struct Unit
     Unit *base_unit;
     int multiplier;
     int divider; // NOTE: if 0, it is treated as if it was set to 1
-    int offset; // offset is in terms of the unit itself
+    int offset;  // offset is in terms of the unit itself
     char *quantity;
     int visited; // Used for finding unit conversions, prevents infinite recursion
 };
