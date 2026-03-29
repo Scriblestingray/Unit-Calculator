@@ -7,7 +7,7 @@
 static Unit time_units[] = {
     (Unit)
     {
-        .abbreviation = "sec",
+        .abbreviation = "s",
         .is_base_unit = 1,
         .quantity = "time",
     },
@@ -80,8 +80,8 @@ static Unit metric_units[] = {
         .is_base_unit = 0,
         .quantity = "distance",
         .base_unit = &imperial_units[0],
-        .multiplier = 254,
-        .divider = 10,
+        .multiplier = 10,
+        .divider = 254,
         .offset = 0,
     },
     (Unit)

@@ -1,6 +1,7 @@
 
 #include "parse.h"
 #include "temp_units.h"
+#include "Config.h"
 
 #include <stdio.h>
 #include <string.h>
@@ -63,15 +64,17 @@ static ParseTestEntry parse_entries[] = {
     { "40m / .1m", 0, 400, 0, 1 },
     // different units
     { "1m + 100cm", 0, 2, 0, 1, (DerivedUnit) { { &metric_units[2] }, { 1 }, 1 } },
-    { "2km - 10000cm", 0, 1, 0, 1, (DerivedUnit) { { &metric_units[3] }, { 1 }, 1 } },
+    { "2km - 100000cm", 0, 1, 0, 1, (DerivedUnit) { { &metric_units[3] }, { 1 }, 1 } },
     { "1km * 1000m", 0, 1, 0, 1, (DerivedUnit) { { &metric_units[3] }, { 2 }, 1 } },
     { "100cm + 1m", 0, 200, 0, 1, (DerivedUnit) { { &metric_units[1] }, { 1 }, 1 } },
+    { "3600s + 1hr", 0, 7200, 0, 1, (DerivedUnit) { { &time_units[0] }, { 1 }, 1 } },
+    { "1cm + 1in", 0, 3, 27, 50, (DerivedUnit) { { &metric_units[1] }, { 1 }, 1 } },
+    { "1cm + 1ft", 0, 31, 12, 25, (DerivedUnit) { { &metric_units[1] }, { 1 }, 1 } },
+    { "1ft + 1cm", 0, 1, 25, 762, (DerivedUnit) { { &imperial_units[1] }, { 1 }, 1 } },
+    { "1ft * 1cm", 0, 0, 25, 762, (DerivedUnit) { { &imperial_units[1] }, { 2 }, 1 } },
+    { "1ft/s * 1cm/s", 0, 0, 25, 762, (DerivedUnit) { { &imperial_units[1], &time_units[0] }, { 2, -2 }, 2 } },
+    { "0ft/hr + 1ft/s", 0, 3600, 0, 1, (DerivedUnit) { { &imperial_units[1], &time_units[2] }, { 1, -1 }, 2 } },
     { 0 },
-    // all forms of expressions with one number being a unit, both having same units
-    // both having different units of the same quantity,
-    // and for multiplication and division, different units
-    // for different units of the same quantity, also test ones that are close and ones
-    // that are far apart, and in different unit systems
 };
 
 int DerivedUnitEquals(DerivedUnit unit1, DerivedUnit unit2) {
@@ -96,12 +99,13 @@ int NumEquals(Number num1, Number num2) {
 int main() {
     setlocale(LC_ALL, "");
     ParseTestEntry *entry = &parse_entries[0];
+    Systems systems = CreateSystems();
 
     int tested = 0;
     int succeeded = 0;
 
     while (entry->expression != 0) {
-        Result result = ParseAndEvalExpression(entry->expression);
+        Result result = ParseAndEvalExpression(entry->expression, systems);
         
         if (result.status != SUCCESS) {
             printf("X | %s = ", entry->expression);

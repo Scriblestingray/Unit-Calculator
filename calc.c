@@ -1,5 +1,3 @@
-
-#include "temp_units.h"
 #include "calc.h"
 
 #include <stdio.h>
@@ -62,23 +60,26 @@ struct UnitChain
     UnitChain *next;
 };
 
-UnitChain *BuildChain(Unit *current_unit, Unit *last_unit) {
+int UnitEquals(Unit *unit1, Unit *unit2) {
+    return strncmp(unit1->abbreviation, unit2->abbreviation, 20) == 0;
+}
+
+UnitChain *BuildChain(Unit *current_unit, Unit *last_unit, Systems systems) {
     
     // case 1: current_unit and last_unit are directly related to each other
-
-    if (!last_unit->is_base_unit && last_unit->base_unit == current_unit) {
+    if (!last_unit->is_base_unit && UnitEquals(last_unit->base_unit, current_unit)) {
         UnitChain *chain = malloc(sizeof(UnitChain));
         *chain = (UnitChain) {
             .unit = last_unit,
             .direction = FORWARDS,
-            .next = 0
+            .next = NULL
         };
         return chain;
     }
-    if (!current_unit->is_base_unit && current_unit->base_unit == last_unit) {
+    if (!current_unit->is_base_unit && UnitEquals(current_unit->base_unit, last_unit)) {
         UnitChain *chain = malloc(sizeof(UnitChain));
         *chain = (UnitChain) {
-            .unit = last_unit,
+            .unit = current_unit,
             .direction = BACKWARDS,
             .next = NULL
         };
@@ -89,13 +90,15 @@ UnitChain *BuildChain(Unit *current_unit, Unit *last_unit) {
     // they are NOT related to each other, propagate the chain one step forward
     // by recursively finding a chain using the current_unit's base unit.
 
-    if (!current_unit->is_base_unit) {
-        UnitChain *inner = BuildChain(current_unit->base_unit, last_unit);
+    if (!current_unit->is_base_unit && !current_unit->base_unit->visited) {
+        current_unit->base_unit->visited = 1;
+        UnitChain *inner = BuildChain(current_unit->base_unit, last_unit, systems);
+        current_unit->base_unit->visited = 0;
         if (inner != NULL) {
             UnitChain *chain = malloc(sizeof(UnitChain));
              *chain = (UnitChain) {
-                .unit = current_unit->base_unit,
-                .direction = FORWARDS,
+                .unit = current_unit,
+                .direction = BACKWARDS,
                 .next = inner
             };
             return chain;
@@ -109,22 +112,27 @@ UnitChain *BuildChain(Unit *current_unit, Unit *last_unit) {
     // try going the other direction: find a unit that uses current unit
     // as its base.
 
-    for (int i = 0; i < unit_system_count; i++) {
-        UnitSystem *system = &unit_systems[i];
+    for (int i = 0; i < systems.count; i++) {
+        UnitSystem *system = &systems.systems[i];
         for (int j = 0; j < system->unit_count; j++) {
-            if (&system->units[j] == last_unit)
+            if (UnitEquals(&system->units[j], last_unit))
+                continue;
+            if (strncmp(system->units[j].quantity, last_unit->quantity, 20) != 0)
                 continue;
             if (system->units[j].is_base_unit)
                 continue;
-            if (system->units[j].base_unit != current_unit)
+            if (!UnitEquals(system->units[j].base_unit, current_unit))
                 continue;
-
-            UnitChain *inner = BuildChain(&system->units[j], last_unit);
+            if (system->units[j].visited)
+                continue;
+            system->units[j].visited = 1;
+            UnitChain *inner = BuildChain(&system->units[j], last_unit, systems);
+            system->units[j].visited = 0;
             if (inner != NULL) {
                 UnitChain *chain = malloc(sizeof(UnitChain));
                 *chain = (UnitChain) {
                     .unit = &system->units[j],
-                    .direction = BACKWARDS,
+                    .direction = FORWARDS,
                     .next = inner
                 };
                 return chain;
@@ -137,14 +145,12 @@ UnitChain *BuildChain(Unit *current_unit, Unit *last_unit) {
 }
 
 // NOTE: This does not touch the derived_units inside num. This only adjusts the values.
-Result ConvertUnit(Number num, Unit *old_unit, Unit *new_unit) {
+Result ConvertUnit(Number num, Unit *old_unit, Unit *new_unit, Systems systems) {
     DerivedUnit old_derived_unit = num.derived_unit;
 
-    UnitChain *chain = BuildChain(old_unit, new_unit);
-    UnitChain *prev_chain = 0;
-    printf("-- Chain:\n");
+    UnitChain *chain = BuildChain(old_unit, new_unit, systems);
+    UnitChain *prev_chain = NULL;
     for (; chain != 0; chain = chain->next) {
-        printf("|| %s %s\n", chain->unit->abbreviation, chain->direction ? "BACKWARDS" : "FORWARDS");
         if (prev_chain != 0)
             free(prev_chain);
         prev_chain = chain;
@@ -198,22 +204,21 @@ Result ConvertUnit(Number num, Unit *old_unit, Unit *new_unit) {
 
 // Find which units match quantities and convert the number to more closely match the number.
 // Non-matching quantities are ignored.
-Result MatchUnits(Number num, DerivedUnit units) {
+Result MatchUnits(Number num, DerivedUnit units, Systems systems) {
     for (int i = 0; i < num.derived_unit.unit_count; i++) {
         for (int j = 0; j < units.unit_count; j++) {
             if (strncmp(num.derived_unit.units[i]->quantity, units.units[j]->quantity, 20) == 0 &&
                 num.derived_unit.exponents[i] == units.exponents[j] &&
-                strncmp(num.derived_unit.units[i]->abbreviation, units.units[j]->abbreviation, 20) != 0) {
-                printf("-- Converting from %s to %s\n", num.derived_unit.units[i]->abbreviation, units.units[j]->abbreviation);
-                printf("-- Before: ");
-                PrintResult((Result) { SUCCESS, num });
-                Result result = ConvertUnit(num, num.derived_unit.units[i], units.units[j]);
+                !UnitEquals(num.derived_unit.units[i], units.units[j])) {
+                Result result;
+                if (units.exponents[j] > 0)
+                    result = ConvertUnit(num, num.derived_unit.units[i], units.units[j], systems);
+                else
+                    result = ConvertUnit(num, units.units[j], num.derived_unit.units[i], systems);
                 if (result.status != SUCCESS)
                     return result;
                 num = result.value;
                 num.derived_unit.units[i] = units.units[j];
-                printf("-- After: ");
-                PrintResult((Result) {SUCCESS, num});
                 break;
             }
         }
@@ -261,8 +266,8 @@ DerivedUnit BalanceUnit(DerivedUnit units) {
 }
 
 // Similar to MatchUnits, but enforces that the converted number must have the exact units.
-Result MatchQuantities(Number num, DerivedUnit units) {
-    Result matched = MatchUnits(num, units);
+Result MatchQuantities(Number num, DerivedUnit units, Systems systems) {
+    Result matched = MatchUnits(num, units, systems);
     if (matched.status != SUCCESS)
         return matched;
 
@@ -270,13 +275,13 @@ Result MatchQuantities(Number num, DerivedUnit units) {
     matched.value.derived_unit = BalanceUnit(matched.value.derived_unit);
     
     num = matched.value;
-    
+
     if (units.unit_count != 0 && num.derived_unit.unit_count != 0) {
         if (units.unit_count != num.derived_unit.unit_count) {
             return (Result) { .status = UNITS_DONT_MATCH };
         }
         for (int i = 0; i < units.unit_count; i++) {
-            if (units.units[i] != num.derived_unit.units[i] || units.exponents[i] != num.derived_unit.exponents[i])
+            if (!UnitEquals(units.units[i], num.derived_unit.units[i]) || units.exponents[i] != num.derived_unit.exponents[i])
                 return (Result) { .status = UNITS_DONT_MATCH };
         }
     }
@@ -328,8 +333,8 @@ Result AddUnitless(Number num1, Number num2) {
     return (Result) {.status = SUCCESS, .value = num};
 }
 
-Result Add(Number num1, Number num2) {
-    Result num2_result = MatchQuantities(num2, num1.derived_unit);
+Result Add(Number num1, Number num2, Systems systems) {
+    Result num2_result = MatchQuantities(num2, num1.derived_unit, systems);
     if (num2_result.status != SUCCESS)
         return num2_result;
     num2 = num2_result.value;
@@ -342,10 +347,10 @@ Result Add(Number num1, Number num2) {
     return result;
 }
 
-Result Subtract(Number num1, Number num2) {
+Result Subtract(Number num1, Number num2, Systems systems) {
     Number num2_flipped = num2;
     num2_flipped.sign = !num2_flipped.sign;
-    return Add(num1, num2_flipped);
+    return Add(num1, num2_flipped, systems);
 }
 
 // apply the exponents from num2 to num1, as if it were multiplied
@@ -353,7 +358,7 @@ DerivedUnit ApplyExponents(DerivedUnit d1, DerivedUnit d2) {
     for (int i = 0; i < d2.unit_count; i++) {
         int found = 0;
         for (int j = 0; j < d1.unit_count; j++) {
-            if (d1.units[j] == d2.units[i]) {
+            if (UnitEquals(d1.units[j], d2.units[i])) {
                 d1.exponents[j] += d2.exponents[i];
                 found = 1;
                 break;
@@ -403,8 +408,8 @@ Result MultiplyUnitless(Number num1, Number num2) {
     return result;
 }
 
-Result Multiply(Number num1, Number num2) {
-    Result num2_result = MatchUnits(num2, num1.derived_unit);
+Result Multiply(Number num1, Number num2, Systems systems) {
+    Result num2_result = MatchUnits(num2, num1.derived_unit, systems);
     if (num2_result.status != SUCCESS)
         return num2_result;
     num2 = num2_result.value;
@@ -417,7 +422,7 @@ Result Multiply(Number num1, Number num2) {
     return result;
 }
 
-Result Divide(Number num1, Number num2) {
+Result Divide(Number num1, Number num2, Systems systems) {
     // 1 / (b2 + n2/d2)
     // 1 / (b2*d2/d2 + n2/d2)
     // 1 / ((b2*d2+n2)/d2)
@@ -433,38 +438,38 @@ Result Divide(Number num1, Number num2) {
     for (int i = 0; i < reciprocal.derived_unit.unit_count; i++) {
         reciprocal.derived_unit.exponents[i] = -reciprocal.derived_unit.exponents[i];
     }
-    return Multiply(num1, reciprocal);
+    return Multiply(num1, reciprocal, systems);
 }
 
 
-Result AddResult(Result num1, Result num2) {
+Result AddResult(Result num1, Result num2, Systems systems) {
     if (num1.status != SUCCESS)
         return num1;
     if (num2.status != SUCCESS)
         return num2;
-    return Add(num1.value, num2.value);
+    return Add(num1.value, num2.value, systems);
 }
 
-Result SubtractResult(Result num1, Result num2) {
+Result SubtractResult(Result num1, Result num2, Systems systems) {
     if (num1.status != SUCCESS)
         return num1;
     if (num2.status != SUCCESS)
         return num2;
-    return Subtract(num1.value, num2.value);
+    return Subtract(num1.value, num2.value, systems);
 }
 
-Result MultiplyResult(Result num1, Result num2) {
+Result MultiplyResult(Result num1, Result num2, Systems systems) {
     if (num1.status != SUCCESS)
         return num1;
     if (num2.status != SUCCESS)
         return num2;
-    return Multiply(num1.value, num2.value);
+    return Multiply(num1.value, num2.value, systems);
 }
 
-Result DivideResult(Result num1, Result num2) {
+Result DivideResult(Result num1, Result num2, Systems systems) {
     if (num1.status != SUCCESS)
         return num1;
     if (num2.status != SUCCESS)
         return num2;
-    return Divide(num1.value, num2.value);
+    return Divide(num1.value, num2.value, systems);
 }

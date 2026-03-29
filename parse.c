@@ -1,5 +1,5 @@
 #include "structs.h"
-#include "temp_units.h"
+// #include "temp_units.h"
 #include "calc.h"
 
 #include <stdio.h>
@@ -8,9 +8,6 @@
 #include <wchar.h>
 
 #include "parse.h"
-
-// NOTE: "unit_systems" and "unit_system_count" are global variables.
-// Along with "resolved_units"
 
 int IsAlpha(char chr) {
     return (chr >= 'A' && chr <= 'Z') || (chr >= 'a' && chr <= 'z');
@@ -39,9 +36,9 @@ void AdvanceIndex(String expression, int *index)
 
 #define MAX_UNIT_LEN 10
 
-Unit* SearchUnit(char *chars, int len) {
-    for (int i = 0; i < unit_system_count; i++) {
-        UnitSystem *system = &unit_systems[i];
+Unit* SearchUnit(char *chars, int len, Systems systems) {
+    for (int i = 0; i < systems.count; i++) {
+        UnitSystem *system = &systems.systems[i];
         for (int j = 0; j < system->unit_count; j++) {
             if (strncmp(chars, system->units[j].abbreviation, MAX_UNIT_LEN) == 0)
                 return &system->units[j];
@@ -51,16 +48,16 @@ Unit* SearchUnit(char *chars, int len) {
 }
 
 // ParseValue(...) references it, in a recursive fashion
-Result ParseAddSub(String expression, int *index);
+Result ParseAddSub(String expression, int *index, Systems systems);
 
-Result ParseValue(String expression, int *index)
+Result ParseValue(String expression, int *index, Systems systems)
 {
     if (*index >= expression.len)
         return (Result) {.status = UNEXPECTED_END};
 
     if (expression.chars[*index] == '(') {
         AdvanceIndex(expression, index);
-        Result inner = ParseAddSub(expression, index);
+        Result inner = ParseAddSub(expression, index, systems);
         if (*index >= expression.len || expression.chars[*index] != ')') {
             return (Result) { .status = EXPECTED_RPAREN };
         }
@@ -101,7 +98,7 @@ Result ParseValue(String expression, int *index)
             AdvanceIndex(expression, index);
         }
         if (unit_len > 0) {
-            Unit* unit = SearchUnit(unit_chars, unit_len);
+            Unit* unit = SearchUnit(unit_chars, unit_len, systems);
             if (unit == NULL) {
                 return (Result) { .status = NO_SUCH_UNIT };
             }
@@ -113,7 +110,7 @@ Result ParseValue(String expression, int *index)
             current_number.derived_unit.unit_count = 1;
             unit_len = 0;
         }
-        Result acc_potential = Add(acc, current_number);
+        Result acc_potential = Add(acc, current_number, systems);
         if (acc_potential.status != SUCCESS) {
             return acc_potential;
         }
@@ -130,7 +127,7 @@ typedef enum {
     POS, NEG, IDENTITY
 } UnaryOp;
 
-Result ParseUnary(String expression, int *index)
+Result ParseUnary(String expression, int *index, Systems systems)
 {
     UnaryOp op = IDENTITY;
     if (*index < expression.len &&expression.chars[*index] == '+') {
@@ -140,7 +137,7 @@ Result ParseUnary(String expression, int *index)
         op = NEG;
         AdvanceIndex(expression, index);
     }
-    Result value = ParseValue(expression, index);
+    Result value = ParseValue(expression, index, systems);
     if (op == NEG) {
         value.value.sign = !value.value.sign;
     } else if (op == POS) {
@@ -151,20 +148,20 @@ Result ParseUnary(String expression, int *index)
 
 // Possibly stick exponent operator in-between here?
 
-Result ParseMulDiv(String expression, int *index)
+Result ParseMulDiv(String expression, int *index, Systems systems)
 {
-    Result op1 = ParseUnary(expression, index);
+    Result op1 = ParseUnary(expression, index, systems);
     while (1) {
         if (*index < expression.len && expression.chars[*index] == '*') {
             AdvanceIndex(expression, index);
-            Result op2 = ParseUnary(expression, index);
-            op1 = MultiplyResult(op1, op2);
+            Result op2 = ParseUnary(expression, index, systems);
+            op1 = MultiplyResult(op1, op2, systems);
             if (op1.status != SUCCESS)
                 return op1;
         } else if (*index < expression.len && expression.chars[*index] == '/') {
             AdvanceIndex(expression, index);
-            Result op2 = ParseUnary(expression, index);
-            op1 = DivideResult(op1, op2);
+            Result op2 = ParseUnary(expression, index, systems);
+            op1 = DivideResult(op1, op2, systems);
             if (op1.status != SUCCESS)
                 return op1;
         } else {
@@ -174,20 +171,20 @@ Result ParseMulDiv(String expression, int *index)
     return op1;
 }
 
-Result ParseAddSub(String expression, int *index)
+Result ParseAddSub(String expression, int *index, Systems systems)
 {
-    Result op1 = ParseMulDiv(expression, index);
+    Result op1 = ParseMulDiv(expression, index, systems);
     while (1) {
         if (*index < expression.len && expression.chars[*index] == '+') {
             AdvanceIndex(expression, index);
-            Result op2 = ParseMulDiv(expression, index);
-            op1 = AddResult(op1, op2);
+            Result op2 = ParseMulDiv(expression, index, systems);
+            op1 = AddResult(op1, op2, systems);
             if (op1.status != SUCCESS)
                 return op1;
         } else if (*index < expression.len && expression.chars[*index] == '-') {
             AdvanceIndex(expression, index);
-            Result op2 = ParseMulDiv(expression, index);
-            op1 = SubtractResult(op1, op2);
+            Result op2 = ParseMulDiv(expression, index, systems);
+            op1 = SubtractResult(op1, op2, systems);
             if (op1.status != SUCCESS)
                 return op1;
         } else {
@@ -197,11 +194,11 @@ Result ParseAddSub(String expression, int *index)
     return op1;
 }
 
-Result ParseAndEvalExpression(char* expression)
+Result ParseAndEvalExpression(char* expression, Systems systems)
 {
     String str = (String) {.chars = expression, .len = strnlen(expression, 256)};
     int index = 0;
-    return ParseAddSub(str, &index);
+    return ParseAddSub(str, &index, systems);
 }
 
 void PrintSuperscript(int num) {

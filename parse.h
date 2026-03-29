@@ -8,6 +8,6 @@ typedef struct {
     int len;
 } String;
 
-Result ParseAndEvalExpression(char* expression);
+Result ParseAndEvalExpression(char* expression, Systems systems);
 void PrintResult(Result result);
 void PrintResultNoLine(Result result);

@@ -52,12 +52,12 @@ DerivedUnit BalanceUnit(DerivedUnit units);
 Result AddUnitless(Number num1, Number num2);
 Result MultiplyUnitless(Number num1, Number num2);
 
-Result Add(Number num1, Number num2);
-Result Subtract(Number num1, Number num2);
-Result Multiply(Number num1, Number num2);
-Result Divide(Number num1, Number num2);
+Result Add(Number num1, Number num2, Systems systems);
+Result Subtract(Number num1, Number num2, Systems systems);
+Result Multiply(Number num1, Number num2, Systems systems);
+Result Divide(Number num1, Number num2, Systems systems);
 
-Result AddResult(Result num1, Result num2);
-Result SubtractResult(Result num1, Result num2);
-Result MultiplyResult(Result num1, Result num2);
-Result DivideResult(Result num1, Result num2);
+Result AddResult(Result num1, Result num2, Systems systems);
+Result SubtractResult(Result num1, Result num2, Systems systems);
+Result MultiplyResult(Result num1, Result num2, Systems systems);
+Result DivideResult(Result num1, Result num2, Systems systems);
